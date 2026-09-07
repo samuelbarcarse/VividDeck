@@ -30,6 +30,11 @@ from .common import (
 IMAGE_QUALITY = "high"
 IMAGE_FORMAT = "webp"
 
+# Pokémon TCG Pocket is the phone game, not printed cards. Its rarities are a
+# separate taxonomy (One Diamond, Two Star, Crown) that cannot be ranked against
+# physical ones, so mixing them makes a rarity filter incoherent.
+EXCLUDED_SERIES = ("Pokémon TCG Pocket",)
+
 
 def iter_raw_sets(paths: Paths, languages: list[str]) -> Iterator[dict[str, Any]]:
     for language in languages:
@@ -122,6 +127,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sample", type=int, default=20,
                         help="How many random rows to print for inspection (default: 20)")
     parser.add_argument("--seed", type=int, default=None, help="Seed the random sample for reproducible output")
+    parser.add_argument("--exclude-series", default=",".join(EXCLUDED_SERIES),
+                        help="Comma-separated series to drop; pass an empty string to keep everything "
+                             f"(default: {','.join(EXCLUDED_SERIES)})")
     args = parser.parse_args(argv)
 
     setup_logging(args.verbose)
@@ -139,6 +147,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if not cards:
         raise SystemExit("No cards found. Run fetch_catalog.py first.")
+
+    excluded = {s.strip().casefold() for s in args.exclude_series.split(",") if s.strip()}
+    if excluded:
+        before = len(cards)
+        cards = [c for c in cards if (c["series"] or "").casefold() not in excluded]
+        kept_sets = {c["set_id"] for c in cards}
+        sets = [s for s in sets if s["id"] in kept_sets]
+        log.info("Excluded %d cards from %s", before - len(cards), sorted(excluded))
 
     duplicates = [cid for cid, count in Counter(c["id"] for c in cards).items() if count > 1]
     if duplicates:

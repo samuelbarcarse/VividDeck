@@ -33,7 +33,7 @@ CONTENT_TYPE = "image/webp"
 RENDITIONS = ("feed", "detail")
 
 
-def build_client(env: dict[str, str]) -> Any:
+def build_client(env: dict[str, str], workers: int = 10) -> Any:
     import boto3
     from botocore.config import Config
 
@@ -45,7 +45,12 @@ def build_client(env: dict[str, str]) -> Any:
         aws_secret_access_key=env["R2_SECRET_ACCESS_KEY"],
         # R2 ignores the region but boto3 requires one to sign the request.
         region_name="auto",
-        config=Config(retries={"max_attempts": 5, "mode": "standard"}),
+        config=Config(
+            retries={"max_attempts": 5, "mode": "standard"},
+            # Below the worker count, every extra thread's connection is opened,
+            # used once and thrown away instead of being kept alive.
+            max_pool_connections=max(workers, 10),
+        ),
     )
 
 
@@ -99,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     if not candidates:
         raise SystemExit("Nothing to upload — run process_images.py first.")
 
-    client = build_client(env)
+    client = build_client(env, args.workers)
     present = set() if args.force else existing_keys(client, bucket)
     pending = [c for c in candidates if c[2] not in present]
 

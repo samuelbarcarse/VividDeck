@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import random
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -206,6 +207,14 @@ def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
 
 def setup_logging(verbose: bool = False) -> None:
+    # Card names carry δ, é, ♀ and Japanese illustrator names. A Windows console
+    # defaults to cp1252, where printing any of those raises UnicodeEncodeError
+    # and takes the whole stage down — after the data was already written.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(message)s",

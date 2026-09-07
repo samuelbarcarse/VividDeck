@@ -14,6 +14,7 @@ write happens.
 from __future__ import annotations
 
 import argparse
+import json
 import time
 from pathlib import Path
 
@@ -49,6 +50,30 @@ def pick_device(requested: str | None) -> str:
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def load_cache(paths: Paths) -> dict[str, np.ndarray]:
+    """Existing vectors keyed by card id, so a top-up only embeds what is new.
+
+    Keyed by id rather than position because the manifest reorders whenever a set
+    is added; trusting the old index would silently pair cards with the wrong
+    vectors, which is the exact failure this stage is built to prevent.
+    """
+    ids_path = paths.root / "card_ids.json"
+    if not paths.embeddings.exists() or not ids_path.exists():
+        return {}
+    try:
+        vectors = np.load(paths.embeddings)
+        cached_ids = json.loads(ids_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        log.warning("Ignoring unreadable embedding cache (%s); re-embedding everything", exc)
+        return {}
+
+    if len(cached_ids) != vectors.shape[0] or vectors.shape[1] != EMBEDDING_DIM:
+        log.warning("Embedding cache is inconsistent (%d ids vs %s vectors); re-embedding everything",
+                    len(cached_ids), vectors.shape)
+        return {}
+    return {card_id: vectors[i] for i, card_id in enumerate(cached_ids)}
+
+
 def embed_batch(model, preprocess, device: str, image_paths: list[Path]) -> np.ndarray:
     tensors = []
     for path in image_paths:
@@ -67,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE, help=f"Images per batch (default: {BATCH_SIZE})")
     parser.add_argument("--device", default=None, help="torch device (default: cuda if available, else cpu)")
     parser.add_argument("--limit", type=int, default=None, help="Embed at most N cards")
+    parser.add_argument("--force", action="store_true",
+                        help="Re-embed every card instead of reusing embeddings.npy")
     args = parser.parse_args(argv)
     setup_logging(args.verbose)
     paths = paths_from_args(args)
@@ -92,8 +119,23 @@ def main(argv: list[str] | None = None) -> int:
 
     if not card_ids:
         raise SystemExit("No processed feed images found — run process_images.py first.")
-    log.info("Embedding %d cards (%d have no feed image yet)", len(card_ids), missing)
 
+    cache = {} if args.force else load_cache(paths)
+    vectors = np.zeros((len(card_ids), EMBEDDING_DIM), dtype=np.float32)
+    todo: list[int] = []
+    for index, card_id in enumerate(card_ids):
+        cached = cache.get(card_id)
+        if cached is None:
+            todo.append(index)
+        else:
+            vectors[index] = cached
+
+    log.info("Embedding %d cards (%d reused from cache, %d have no feed image yet)",
+             len(todo), len(card_ids) - len(todo), missing)
+
+    # The model loads even when nothing needs embedding: the spot check below
+    # re-embeds three cards, and on a cache-reuse run that check is the only thing
+    # proving the cached vectors are still paired with the right ids.
     import open_clip
 
     device = pick_device(args.device)
@@ -101,14 +143,14 @@ def main(argv: list[str] | None = None) -> int:
     model, _, preprocess = open_clip.create_model_and_transforms(MODEL, pretrained=PRETRAINED)
     model = model.to(device).eval()
 
-    vectors = np.zeros((len(card_ids), EMBEDDING_DIM), dtype=np.float32)
-    started = time.monotonic()
-    for start in range(0, len(image_paths), args.batch_size):
-        chunk = image_paths[start : start + args.batch_size]
-        vectors[start : start + len(chunk)] = embed_batch(model, preprocess, device, chunk)
-        done = start + len(chunk)
-        elapsed = time.monotonic() - started
-        log.info("%d/%d embedded (%.1f img/s)", done, len(card_ids), done / elapsed if elapsed else 0)
+    if todo:
+        started = time.monotonic()
+        for start in range(0, len(todo), args.batch_size):
+            indices = todo[start : start + args.batch_size]
+            vectors[indices] = embed_batch(model, preprocess, device, [image_paths[i] for i in indices])
+            done = start + len(indices)
+            elapsed = time.monotonic() - started
+            log.info("%d/%d embedded (%.1f img/s)", done, len(todo), done / elapsed if elapsed else 0)
 
     if len(card_ids) != vectors.shape[0]:
         raise SystemExit(f"Length mismatch: {len(card_ids)} ids vs {vectors.shape[0]} vectors")

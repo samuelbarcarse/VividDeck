@@ -10,24 +10,33 @@ web/        Next.js 16 app (App Router, Tailwind v4, Framer Motion)
 
 ## Status
 
-Build order per SPEC.md:
+Ingest stages (`ingest/pipeline/`):
 
-| Step | What | State |
+| Stage | What | State |
 |---|---|---|
 | 1 | `fetch_catalog.py` | done, verified on 5 EN sets + 1 JA set |
 | 2 | `build_manifest.py` | done, verified (815 cards, 132 illustrators) |
 | 3 | `download_images.py` | done, 815/815 downloaded, 0 failures |
 | 4 | `process_images.py` | done, 815 cards x 2 renditions |
-| 5 | `upload_r2.py` | written, **unrun** — needs R2 credentials |
+| 5 | `upload_r2.py` | done, 1630 objects / 113.7 MB, 0 failed |
 | 6 | `embed.py` | done, 815x512 embeddings, spot checks pass |
-| 7 | `load_db.py` | written, **unrun** — needs `DATABASE_URL` |
-| — | `neighbors.py` (step 4 checkpoint) | done, contact sheet generated |
+| 7 | `load_db.py` | done, 6 sets + 815 cards, all embeddings unit-norm |
 | 8 | `sync_prices.py` | stub — see note below |
-| 9–12 | Liked page, artist pages, taste-weighted feed, polish | scaffolded only |
 
-Stages 5 and 7 are the only ones never executed; both are blocked purely on
-credentials, not on code. Their SQL and upload shapes were validated separately
-(the upsert was dry-run against the live database and rolled back).
+Every stage has now run end to end on the 5-set sample. Re-running any of them is
+a no-op.
+
+Build order per SPEC.md:
+
+| Step | What | State |
+|---|---|---|
+| 1 | DB migrations and schema | done, 6 migrations applied |
+| 2–3 | Ingest stages 1–7 on 5 sets | done, data live in Supabase and R2 |
+| 4 | **Neighbor-quality checkpoint** | `neighbors.py` written, contact sheet generated — **awaiting your review** |
+| 5 | Full catalog ingest | not started, gated on step 4 |
+| 6–7 | Feed endpoint, swipe UI with prefetch | done |
+| 8 | Taste vector + three-bucket serving | done, verified end to end against a synthetic fixture |
+| 9–12 | Liked view, artist view, auth, price sync | scaffolded only |
 
 ## Before anything works
 
@@ -132,10 +141,28 @@ One caveat to watch once the full catalog is in: Base Set queries return mostly
 Base Set neighbors, so CLIP is keying on card frame and era as much as on the art.
 That is another argument for not shrinking the 20% random bucket.
 
+A live probe against `feed_for_user` puts a number on that caveat. Liking 12
+Mitsuhiro Arita cards and reading back one batch:
+
+| Signal | In the similar bucket | Catalog base rate | Lift |
+|---|---|---|---|
+| Illustrated by Arita | 3/14 (21%) | 4.2% | ~5x |
+| From Base Set | 9/14 (64%) | ~13% | ~5x |
+
+Artist and era lift by the same factor, so this batch cannot tell them apart —
+consistent with the frame/era confound rather than ruling it out. Arita's cards
+are concentrated in Base Set, which is exactly what makes the two hypotheses hard
+to separate. Worth re-running against an illustrator whose work spans several eras
+before concluding the embeddings capture style.
+
 ## Conventions
 
 - Card images are served straight from R2 as plain `<img>` tags. **Never `next/image`** —
   it would proxy every request through the Next server and defeat the CDN.
 - Vector math stays server-side. The client never sees an embedding.
-- Recommendation math is commented where it lives (`web/lib/taste.ts`), since the
-  weights are judgment calls, not derivations.
+- Recommendation math lives only in `db/migrations/0005_taste_feed.sql`. The weights
+  are judgment calls, not derivations, and are commented where they are declared.
+  Deliberately not mirrored in TypeScript — two copies of a tuning constant drift.
+- pgvector is installed into the `extensions` schema, so any function touching a
+  vector needs `set search_path = extensions` (operator resolution goes through
+  search_path). Keep every table reference `public.`-qualified.
