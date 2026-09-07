@@ -10,6 +10,7 @@ export function feedImage(imageKey: string): string {
   return `${R2_PUBLIC_URL}/${imageKey}/feed.webp`;
 }
 
+/** Also 600x825 — TCGdex has no larger source. Don't size the modal past that. */
 export function detailImage(imageKey: string): string {
   return `${R2_PUBLIC_URL}/${imageKey}/detail.webp`;
 }
