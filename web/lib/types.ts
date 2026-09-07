@@ -8,10 +8,10 @@ export interface Card {
   rarity: string | null;
   set_name: string | null;
   price_usd: number | null;
+  /** Which bucket served this card — useful while tuning the mix. */
+  bucket?: "similar" | "random" | "recent";
 }
 
 export interface FeedResponse {
   cards: Card[];
-  /** Which bucket each card came from — useful while tuning the mix. */
-  source: "random" | "mixed";
 }

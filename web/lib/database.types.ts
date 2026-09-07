@@ -151,9 +151,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
-      feed_random: {
+      feed_for_user: {
         Args: { p_limit?: number };
         Returns: {
+          bucket: string;
           id: string;
           illustrator: string;
           image_key: string;

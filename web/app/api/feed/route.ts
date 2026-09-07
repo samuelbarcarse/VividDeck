@@ -16,13 +16,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "not authenticated" }, { status: 401 });
   }
 
-  // Build order step 6 serves pure random. Step 8 swaps this for the
-  // 70/20/10 similarity / random / recent mix once embeddings are loaded.
-  const { data, error } = await supabase.rpc("feed_random", { p_limit: n });
+  // The mix, the cold-start threshold and the taste math all live inside this
+  // function so the weights have exactly one home. See db/migrations/0005.
+  const { data, error } = await supabase.rpc("feed_for_user", { p_limit: n });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const body: FeedResponse = { cards: (data ?? []) as Card[], source: "random" };
+  const body: FeedResponse = { cards: (data ?? []) as Card[] };
   return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
 }
