@@ -19,7 +19,21 @@ function preload(card: Card): void {
   image.src = feedImage(card.image_key);
 }
 
-export function useCardQueue() {
+/**
+ * Queue of unswiped cards for one filter.
+ *
+ * The hook deliberately does not handle a changing filter. Its caller remounts
+ * it under a new `key` instead, so a filter change produces a genuinely fresh
+ * instance — empty queue, empty dedupe set, one new fetch — rather than a pile
+ * of manual teardown that has to stay in sync with every piece of state added
+ * later. It also removes the stale-response problem outright: a request from
+ * the previous filter resolves against an unmounted component and is discarded
+ * by React, so it can never append cards from a feed the user left.
+ */
+export function useCardQueue(rarities: string[] = []) {
+  // Sorted, so ticking A then B and B then A produce the same request.
+  const filterKey = [...rarities].sort().join(",");
+
   const [queue, setQueue] = useState<Card[]>([]);
   const [ready, setReady] = useState(false);
   const [exhausted, setExhausted] = useState(false);
@@ -34,7 +48,10 @@ export function useCardQueue() {
     if (inFlight.current) return;
     inFlight.current = true;
     try {
-      const response = await fetch(`/api/feed?n=${QUEUE_TARGET}`);
+      const query = new URLSearchParams({ n: String(QUEUE_TARGET) });
+      if (filterKey) query.set("rarities", filterKey);
+
+      const response = await fetch(`/api/feed?${query}`);
       if (!response.ok) {
         throw new Error((await response.json().catch(() => ({}))).error ?? `feed failed (${response.status})`);
       }
@@ -52,7 +69,7 @@ export function useCardQueue() {
     } finally {
       inFlight.current = false;
     }
-  }, []);
+  }, [filterKey]);
 
   useEffect(() => {
     let cancelled = false;

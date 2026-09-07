@@ -1,8 +1,18 @@
 import Link from "next/link";
 
 import { SwipeDeck } from "@/components/SwipeDeck";
+import { createServerSupabase } from "@/lib/supabase/server";
+import type { RarityGroup } from "@/lib/types";
 
-export default function Page() {
+export default async function Page() {
+  // Fetched here rather than from the client so the taxonomy has exactly one
+  // home — the database — and the checkbox list cannot drift from the groups the
+  // feed actually filters on. It also saves a round trip before the first paint.
+  const supabase = await createServerSupabase();
+  const { data } = await supabase.from("rarity_groups").select("key, label").order("sort_order");
+
+  const rarityGroups: RarityGroup[] = data ?? [];
+
   return (
     <main className="relative">
       <Link
@@ -11,7 +21,7 @@ export default function Page() {
       >
         Liked
       </Link>
-      <SwipeDeck />
+      <SwipeDeck rarityGroups={rarityGroups} />
     </main>
   );
 }

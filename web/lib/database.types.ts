@@ -21,6 +21,7 @@ export type Database = {
           price_updated: string | null;
           price_usd: number | null;
           rarity: string | null;
+          rarity_group: string | null;
           set_id: string | null;
         };
         Insert: {
@@ -34,6 +35,7 @@ export type Database = {
           price_updated?: string | null;
           price_usd?: number | null;
           rarity?: string | null;
+          rarity_group?: string | null;
           set_id?: string | null;
         };
         Update: {
@@ -47,9 +49,17 @@ export type Database = {
           price_updated?: string | null;
           price_usd?: number | null;
           rarity?: string | null;
+          rarity_group?: string | null;
           set_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "cards_rarity_group_fkey";
+            columns: ["rarity_group"];
+            isOneToOne: false;
+            referencedRelation: "rarity_groups";
+            referencedColumns: ["key"];
+          },
           {
             foreignKeyName: "cards_set_id_fkey";
             columns: ["set_id"];
@@ -63,6 +73,12 @@ export type Database = {
         Row: { created_at: string | null; id: string };
         Insert: { created_at?: string | null; id: string };
         Update: { created_at?: string | null; id?: string };
+        Relationships: [];
+      };
+      rarity_groups: {
+        Row: { key: string; label: string; sort_order: number };
+        Insert: { key: string; label: string; sort_order: number };
+        Update: { key?: string; label?: string; sort_order?: number };
         Relationships: [];
       };
       sets: {
@@ -152,7 +168,7 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       feed_for_user: {
-        Args: { p_limit?: number };
+        Args: { p_limit?: number; p_rarities?: string[] };
         Returns: {
           bucket: string;
           id: string;

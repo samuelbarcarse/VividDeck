@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Riffle",
+  title: "VividDeck",
   description: "Swipe through Pokémon card art and find the ones nobody shows you.",
 };
 

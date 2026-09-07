@@ -15,3 +15,16 @@ export interface Card {
 export interface FeedResponse {
   cards: Card[];
 }
+
+/**
+ * One filterable rarity tier.
+ *
+ * `key` is the canonical group, not the raw TCGdex string: those are 26 values
+ * with duplicates across eras (`Holo Rare` and `Rare Holo` are the same card).
+ * The mapping lives in the database — see db/migrations/0008 — so this type
+ * never enumerates the groups and cannot drift from them.
+ */
+export interface RarityGroup {
+  key: string;
+  label: string;
+}
