@@ -1,6 +1,6 @@
-# Riffle
+# VividDeck
 
-Swipe-based Pokémon card art discovery. Full product spec in [SPEC.md](SPEC.md).
+Swipe-based Pokémon card art discovery
 
 ```
 db/         SQL migrations (mirror of what is applied to Supabase)
