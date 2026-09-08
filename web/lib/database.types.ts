@@ -109,9 +109,9 @@ export type Database = {
         Relationships: [];
       };
       swipes: {
-        Row: { card_id: string; created_at: string | null; direction: number; user_id: string };
-        Insert: { card_id: string; created_at?: string | null; direction: number; user_id: string };
-        Update: { card_id?: string; created_at?: string | null; direction?: number; user_id?: string };
+        Row: { card_id: string; created_at: string; direction: number; user_id: string };
+        Insert: { card_id: string; created_at?: string; direction: number; user_id: string };
+        Update: { card_id?: string; created_at?: string; direction?: number; user_id?: string };
         Relationships: [
           {
             foreignKeyName: "swipes_card_id_fkey";
@@ -179,6 +179,23 @@ export type Database = {
           rarity: string;
           set_name: string;
         }[];
+      };
+      list_likes: {
+        Args: { p_before?: string; p_before_id?: string; p_limit?: number };
+        Returns: {
+          card_id: string;
+          illustrator: string;
+          image_key: string;
+          liked_at: string;
+          name: string;
+          price_usd: number;
+          rarity: string;
+          set_name: string;
+        }[];
+      };
+      purge_stale_anonymous_users: {
+        Args: { p_idle?: string };
+        Returns: number;
       };
       record_swipe: {
         Args: { p_card_id: string; p_direction: number };

@@ -1,13 +1,12 @@
 import Link from "next/link";
 
 import { AuthPanel } from "@/components/AuthPanel";
-import { CardGrid } from "@/components/CardGrid";
+import { LikedGrid } from "@/components/LikedGrid";
+import { LIKES_PAGE_SIZE, SAVE_PROMPT_MIN_LIKES, toLikesPage } from "@/lib/likes";
 import { createServerSupabase } from "@/lib/supabase/server";
-import type { Card } from "@/lib/types";
 
-// Build order step 9 still owes this page: infinite scroll, the detail modal
-// with a TCGplayer link, CSV export, and filtering by illustrator or set.
-const PAGE_SIZE = 60;
+// Build order step 9 still owes this page: the detail modal with a TCGplayer
+// link, CSV export, and filtering by illustrator or set.
 
 export default async function LikedPage({ searchParams }: PageProps<"/liked">) {
   // A repeated query string (?auth_error=a&auth_error=b) arrives as an array, so
@@ -37,46 +36,43 @@ export default async function LikedPage({ searchParams }: PageProps<"/liked">) {
     );
   }
 
-  const { data, error } = await supabase
-    .from("swipes")
-    .select("card_id, created_at, cards(id, name, image_key, illustrator, rarity, price_usd, sets(name))")
-    .eq("direction", 1)
-    .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE);
+  // The count is fetched separately rather than read off the first page, which
+  // only ever holds LIKES_PAGE_SIZE rows. Sizing the save prompt off the page
+  // length would have capped it at 60 and, worse, understated what the reader
+  // stands to lose at exactly the moment it is asking them to protect it.
+  const [{ data, error }, { count, error: countError }] = await Promise.all([
+    supabase.rpc("list_likes", { p_limit: LIKES_PAGE_SIZE }),
+    supabase.from("swipes").select("card_id", { count: "exact", head: true }).eq("direction", 1),
+  ]);
 
-  if (error) {
+  if (error ?? countError) {
     return (
       <Shell authError={authError} email={user.email ?? null} anonymousSession={isAnonymous}>
-        Could not load your likes: {error.message}
+        Could not load your likes: {(error ?? countError)?.message}
       </Shell>
     );
   }
 
-  const cards: Card[] = (data ?? [])
-    .flatMap((row) => (row.cards ? [row.cards] : []))
-    .map((card) => ({
-      id: card.id,
-      name: card.name,
-      image_key: card.image_key,
-      illustrator: card.illustrator,
-      rarity: card.rarity,
-      price_usd: card.price_usd,
-      set_name: card.sets?.name ?? null,
-    }));
+  const { cards, nextCursor } = toLikesPage(data ?? [], LIKES_PAGE_SIZE);
+  const totalLikes = count ?? cards.length;
 
   return (
     <Shell authError={authError} email={user.email ?? null} anonymousSession={isAnonymous}>
-      {/* Shown above the grid, and only once there is something to lose. An empty
-          page asking for an email is easy to dismiss; the same ask sitting on top
-          of art you just picked out is not. */}
-      {isAnonymous && cards.length > 0 && (
+      {/* Held back until the list is worth keeping. SPEC puts this at ~20 likes:
+          before that there is little to lose and the ask just gets dismissed,
+          which spends the one moment this prompt gets to land. */}
+      {isAnonymous && totalLikes >= SAVE_PROMPT_MIN_LIKES && (
         <div className="mb-6 rounded-xl border border-amber-900/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-200/90">
           These aren&rsquo;t saved. You&rsquo;re browsing without an account, so this list lives only in this browser and
-          is deleted after a week of inactivity. Sign in to keep it — your {cards.length} like
-          {cards.length === 1 ? "" : "s"} and everything the feed has learned carry over.
+          is deleted after a week of inactivity. Sign in to keep it — your {totalLikes} likes and everything the feed
+          has learned carry over.
         </div>
       )}
-      {cards.length === 0 ? "Nothing liked yet." : <CardGrid cards={cards} />}
+      {totalLikes === 0 ? (
+        "Nothing liked yet."
+      ) : (
+        <LikedGrid initialCards={cards} initialCursor={nextCursor} />
+      )}
     </Shell>
   );
 }

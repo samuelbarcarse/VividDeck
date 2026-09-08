@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "VividDeck",
-  description: "Swipe through Pokémon card art and find the ones nobody shows you.",
+  description: "Swipe through and discover new Pokemon card art",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
