@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { RarityGroup } from "@/lib/types";
+import { PILL, join } from "@/lib/ui";
+import { useDismiss } from "@/lib/useDismiss";
 
 /**
- * Rarity checkboxes.
+ * Rarity checkboxes, behind the top bar's Filter button.
  *
  * Nothing ticked means no filter rather than no cards. That is the only sane
  * reading of an empty selection, and it also means unticking the last box
  * returns you to the full feed instead of an empty deck.
+ *
+ * The component owns its trigger as well as its panel, because the two have to
+ * stay anchored to each other. It positions itself relative to whatever slot the
+ * top bar puts it in rather than to the viewport.
  */
 export function RarityFilter({
   groups,
@@ -22,23 +28,11 @@ export function RarityFilter({
 }) {
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
-
-  // Click-away and Escape, so the panel never traps the deck underneath it.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!container.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useDismiss(
+    open,
+    container,
+    useCallback(() => setOpen(false), []),
+  );
 
   const toggle = (key: string) => {
     onChange(selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key]);
@@ -47,18 +41,15 @@ export function RarityFilter({
   const active = selected.length;
 
   return (
-    <div ref={container} className="absolute left-4 top-4 z-20">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        className="rounded-full border border-neutral-800 bg-neutral-950/80 px-3 py-1 text-sm text-neutral-400 backdrop-blur transition-colors hover:border-neutral-700 hover:text-neutral-200"
-      >
-        Rarity{active > 0 ? ` · ${active}` : ""}
+    <div ref={container} className="relative">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className={join(PILL)}>
+        Filter{active > 0 ? ` · ${active}` : ""}
       </button>
 
       {open && (
-        <div className="mt-2 w-64 rounded-xl border border-neutral-800 bg-neutral-950/95 p-3 shadow-2xl shadow-black/60 backdrop-blur">
+        // Anchored under the trigger and out of flow, so opening the panel does
+        // not change the height of the bar and shove the deck down the page.
+        <div className="absolute left-0 top-full z-30 mt-2 w-64 rounded-xl border border-neutral-800 bg-neutral-950/95 p-3 text-left shadow-2xl shadow-black/60 backdrop-blur">
           <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
             <span>{active === 0 ? "Showing all" : `Showing ${active} of ${groups.length}`}</span>
             {active > 0 && (

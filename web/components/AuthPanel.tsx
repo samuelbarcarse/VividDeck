@@ -6,15 +6,29 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Sign-in and sign-out control for the liked view.
+ * Sign-in and sign-out control, rendered inline on the watchlist and inside the
+ * top bar's account menu.
  *
  * Anonymous visitors are *upgraded* rather than replaced. `linkIdentity` attaches
  * a Google identity to the existing `auth.users` row, so the user id survives and
  * their swipe history and taste vector come with it. Calling `signInWithOAuth`
  * instead would mint a second user and silently orphan everything they had
  * already liked, which is the failure this component exists to avoid.
+ *
+ * `signInLabel` exists because the two call sites are asking for different
+ * things. On the watchlist the reader is looking at a list they are about to
+ * lose, so the button names the stake; in the account menu there is no list on
+ * screen and the same words would be a promise about nothing.
  */
-export function AuthPanel({ email, anonymousSession }: { email: string | null; anonymousSession: boolean }) {
+export function AuthPanel({
+  email,
+  anonymousSession,
+  signInLabel = "Save these — sign in with Google",
+}: {
+  email: string | null;
+  anonymousSession: boolean;
+  signInLabel?: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +115,7 @@ export function AuthPanel({ email, anonymousSession }: { email: string | null; a
         disabled={busy}
         className="rounded-full border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 transition-colors hover:border-neutral-500 hover:bg-neutral-900 disabled:opacity-50"
       >
-        {busy ? "Opening Google…" : "Save these — sign in with Google"}
+        {busy ? "Opening Google…" : signInLabel}
       </button>
       {error && <p className="max-w-xs text-right text-xs text-red-400">{error}</p>}
     </div>

@@ -36,11 +36,14 @@ const USD = new Intl.NumberFormat("en-US", {
 /**
  * Renders a price for display, or null when there is nothing honest to show.
  *
- * Null means no TCGplayer listing was found, which is a real and common state:
- * promos, very new sets, and anything outside the English catalog often have no
- * pricing at all. Callers should render nothing rather than "$0.00" or "—",
- * since a zero would read as a real price and a dash invites the reader to
- * think the number is loading.
+ * Null means no TCGplayer market price was found, which is a real and common
+ * state: promos, very new sets, and anything outside the English catalog often
+ * have no pricing at all, and a handful of very expensive vintage cards have
+ * active listings but no completed sales to average.
+ *
+ * Returning null rather than "$0.00" is the point — a zero would read as a real
+ * price. Callers are expected to say so in words instead; see CardPrice, which
+ * renders "No Price Listed".
  */
 export function formatUsd(value: number | null | undefined): string | null {
   if (value === null || value === undefined) return null;

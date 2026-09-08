@@ -92,7 +92,10 @@ function Shell({
     <main className="mx-auto w-full max-w-6xl px-4 py-8">
       <header className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg text-neutral-200">Liked</h1>
+          {/* "Watchlist" is what the top bar calls this, so it is what the page
+              has to call itself. The route stays /liked: it is what the auth
+              callback redirects to and what the swipes table actually records. */}
+          <h1 className="text-lg font-semibold text-neutral-200">Watchlist</h1>
           <Link href="/" className="text-sm text-neutral-500 underline-offset-4 hover:text-neutral-200 hover:underline">
             Back to swiping
           </Link>
