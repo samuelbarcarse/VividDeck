@@ -15,6 +15,13 @@ export default async function ArtistPage({ params }: PageProps<"/artist/[name]">
     .from("cards")
     .select("id, name, image_key, illustrator, rarity, price_usd, sets(name)")
     .eq("illustrator", illustrator)
+    // Without an explicit order, Postgres is free to return any PAGE_SIZE rows it
+    // likes, and to return a different set on the next request. For a prolific
+    // illustrator that meant the page silently reshuffled between reloads. Set is
+    // the useful grouping here — a hand-drawn era reads as a body of work — and id
+    // breaks the tie so the order is total, not merely mostly-determined.
+    .order("set_id", { ascending: true })
+    .order("id", { ascending: true })
     .limit(PAGE_SIZE);
 
   if (error) {
