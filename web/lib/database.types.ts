@@ -159,9 +159,21 @@ export type Database = {
         Relationships: [];
       };
       swipes: {
-        Row: { card_id: string; created_at: string; direction: number; user_id: string };
-        Insert: { card_id: string; created_at?: string; direction: number; user_id: string };
-        Update: { card_id?: string; created_at?: string; direction?: number; user_id?: string };
+        Row: { card_id: string; completed_at: string | null; created_at: string; direction: number; user_id: string };
+        Insert: {
+          card_id: string;
+          completed_at?: string | null;
+          created_at?: string;
+          direction: number;
+          user_id: string;
+        };
+        Update: {
+          card_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          direction?: number;
+          user_id?: string;
+        };
         Relationships: [
           {
             foreignKeyName: "swipes_card_id_fkey";
@@ -242,10 +254,11 @@ export type Database = {
           tcgplayer_product_id: number;
         }[];
       };
-      list_likes: {
-        Args: { p_before?: string; p_before_id?: string; p_limit?: number };
+      list_watchlist: {
+        Args: { p_limit?: number };
         Returns: {
           card_id: string;
+          completed_at: string;
           illustrator: string;
           image_key: string;
           liked_at: string;
@@ -263,6 +276,14 @@ export type Database = {
       record_swipe: {
         Args: { p_card_id: string; p_direction: number };
         Returns: undefined;
+      };
+      set_cards_completed: {
+        Args: { p_card_ids: string[]; p_completed: boolean };
+        Returns: number;
+      };
+      unlike_cards: {
+        Args: { p_card_ids: string[] };
+        Returns: number;
       };
     };
     Enums: { [_ in never]: never };

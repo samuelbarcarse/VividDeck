@@ -1,7 +1,6 @@
 import { SwipeDeck } from "@/components/SwipeDeck";
-import type { Account } from "@/components/TopBar";
 import { createServerSupabase } from "@/lib/supabase/server";
-import type { RarityGroup } from "@/lib/types";
+import type { Account, RarityGroup } from "@/lib/types";
 
 export default async function Page() {
   const supabase = await createServerSupabase();

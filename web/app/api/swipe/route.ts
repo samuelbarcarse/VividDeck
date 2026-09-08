@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { enforce } from "@/lib/rateLimit";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 interface SwipeBody {
@@ -8,6 +9,9 @@ interface SwipeBody {
 }
 
 export async function POST(request: Request) {
+  const refused = enforce(request, "swipe");
+  if (refused) return refused;
+
   let body: SwipeBody;
   try {
     body = (await request.json()) as SwipeBody;
@@ -32,7 +36,11 @@ export async function POST(request: Request) {
 
   const { error } = await supabase.rpc("record_swipe", { p_card_id: cardId, p_direction: direction });
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // The per-user swipe cap from db/migrations/0016 is a refusal, not a fault:
+    // the account has written as many rows as it is allowed and no retry will
+    // change that. 429 says so; 500 would send it to error tracking as a bug.
+    const capped = /swipe limit/.test(error.message);
+    return NextResponse.json({ error: error.message }, { status: capped ? 429 : 500 });
   }
 
   return NextResponse.json({ ok: true });

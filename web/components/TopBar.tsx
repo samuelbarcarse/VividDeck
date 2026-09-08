@@ -1,50 +1,28 @@
-"use client";
-
 import Link from "next/link";
 
-import type { FeedFilter } from "@/lib/filters";
-import type { RarityGroup } from "@/lib/types";
-import { PILL } from "@/lib/ui";
-
-import { AccountMenu } from "./AccountMenu";
-import { FilterPanel } from "./FilterPanel";
-
-/** Everything the bar needs to know about who is looking. */
-export interface Account {
-  email: string | null;
-  avatarUrl: string | null;
-  anonymousSession: boolean;
-}
-
 /**
- * Filter · logo · Watchlist · account.
+ * The logo bar, with a slot either side.
  *
  * A three-column grid rather than `justify-between`, because the logo has to sit
  * on the centre line of the page and not merely between its neighbours — the
- * left group is one short pill and the right group is a pill plus an avatar, so
- * flexbox would push the mark visibly off-centre.
+ * slots hold different amounts on different pages, and flexbox would push the
+ * mark visibly off-centre wherever they were unequal.
  *
- * The bar sits in normal flow above the deck rather than floating over it. The
- * card is dragged by hand and can travel the full width of the screen; an
- * overlaid bar would be something the card slides underneath, and the filter
- * panel would be something you have to dismiss before you can swipe again.
+ * The bar knows nothing about filters, watchlists or accounts. It used to take
+ * all three, which meant the watchlist could only have the same header as the
+ * deck by pretending to be the deck. Slots let both pages share the one thing
+ * that actually has to be identical — the mark, its size, and its position —
+ * while putting their own controls beside it.
+ *
+ * It sits in normal flow above the page content rather than floating over it.
+ * On the deck the card is dragged by hand and can travel the full width of the
+ * screen; an overlaid bar would be something the card slides underneath, and an
+ * open panel would be something you have to dismiss before you can swipe again.
  */
-export function TopBar({
-  rarityGroups,
-  filter,
-  onFilterChange,
-  account,
-}: {
-  rarityGroups: RarityGroup[];
-  filter: FeedFilter;
-  onFilterChange: (next: FeedFilter) => void;
-  account: Account;
-}) {
+export function TopBar({ left, right }: { left?: React.ReactNode; right?: React.ReactNode }) {
   return (
     <header className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4">
-      <div className="justify-self-start">
-        <FilterPanel groups={rarityGroups} filter={filter} onChange={onFilterChange} />
-      </div>
+      <div className="flex items-center gap-2 justify-self-start sm:gap-3">{left}</div>
 
       <Link href="/" aria-label="VividDeck — home" className="justify-self-center">
         {/* A local PNG with its own alpha, not next/image: there is nothing to
@@ -55,16 +33,7 @@ export function TopBar({
         <img src="/vividdeck-logo.png" alt="VividDeck" className="h-5 w-auto sm:h-7" />
       </Link>
 
-      <div className="flex items-center gap-2 justify-self-end sm:gap-3">
-        <Link href="/liked" className={PILL}>
-          Watchlist
-        </Link>
-        <AccountMenu
-          email={account.email}
-          avatarUrl={account.avatarUrl}
-          anonymousSession={account.anonymousSession}
-        />
-      </div>
+      <div className="flex items-center gap-2 justify-self-end sm:gap-3">{right}</div>
     </header>
   );
 }

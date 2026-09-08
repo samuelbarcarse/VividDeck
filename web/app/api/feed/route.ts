@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { enforce } from "@/lib/rateLimit";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Card, FeedResponse } from "@/lib/types";
 
@@ -7,6 +8,12 @@ const DEFAULT_BATCH = 20;
 const MAX_BATCH = 50;
 
 export async function GET(request: Request) {
+  // First statement in the handler: this route runs a vector search over every
+  // embedded card, so nothing else should happen until the caller is known to
+  // be within budget.
+  const refused = enforce(request, "feed");
+  if (refused) return refused;
+
   const params = new URL(request.url).searchParams;
   const requested = Number(params.get("n") ?? DEFAULT_BATCH);
   const n = Number.isFinite(requested) ? Math.min(Math.max(Math.trunc(requested), 1), MAX_BATCH) : DEFAULT_BATCH;

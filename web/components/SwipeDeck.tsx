@@ -6,12 +6,14 @@ import { useCallback, useEffect, useState } from "react";
 
 import { NO_FILTER, activeCount, filterQuery, type FeedFilter } from "@/lib/filters";
 import { feedImage } from "@/lib/images";
-import type { Card, RarityGroup, SwipeDirection } from "@/lib/types";
-import { join } from "@/lib/ui";
+import type { Account, Card, RarityGroup, SwipeDirection } from "@/lib/types";
+import { PILL, join } from "@/lib/ui";
 import { useCardQueue } from "@/lib/useCardQueue";
 
+import { AccountMenu } from "./AccountMenu";
 import { CardPrice } from "./CardPrice";
-import { TopBar, type Account } from "./TopBar";
+import { FilterPanel } from "./FilterPanel";
+import { TopBar } from "./TopBar";
 
 const DRAG_DISTANCE_THRESHOLD = 120;
 const DRAG_VELOCITY_THRESHOLD = 500;
@@ -26,7 +28,21 @@ export function SwipeDeck({ rarityGroups, account }: { rarityGroups: RarityGroup
     <main className="flex h-dvh w-full flex-col overflow-hidden">
       {/* Outside the keyed Deck below, so changing the filter does not remount
           the panel out from under the click that changed it. */}
-      <TopBar rarityGroups={rarityGroups} filter={filter} onFilterChange={setFilter} account={account} />
+      <TopBar
+        left={<FilterPanel groups={rarityGroups} filter={filter} onChange={setFilter} />}
+        right={
+          <>
+            <Link href="/liked" className={PILL}>
+              Watchlist
+            </Link>
+            <AccountMenu
+              email={account.email}
+              avatarUrl={account.avatarUrl}
+              anonymousSession={account.anonymousSession}
+            />
+          </>
+        }
+      />
       {/* The key is the reset. A filter change mounts a new Deck with a fresh
           queue and one new fetch, instead of tearing down state by hand and
           having to remember to extend that teardown every time state is added.

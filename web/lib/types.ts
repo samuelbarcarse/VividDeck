@@ -24,6 +24,19 @@ export interface FeedResponse {
 }
 
 /**
+ * Everything the top bar needs to know about who is looking.
+ *
+ * Resolved on the server in every page that renders the bar. It lives here
+ * rather than beside the bar because both the deck and the watchlist build one,
+ * and neither should have to import a component to describe a session.
+ */
+export interface Account {
+  email: string | null;
+  avatarUrl: string | null;
+  anonymousSession: boolean;
+}
+
+/**
  * One filterable rarity tier.
  *
  * `key` is the canonical group, not the raw TCGdex string: those are 26 values
