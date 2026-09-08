@@ -229,7 +229,7 @@ export type Database = {
         }[];
       };
       feed_for_user: {
-        Args: { p_limit?: number; p_rarities?: string[] };
+        Args: { p_limit?: number; p_max_price?: number; p_min_price?: number; p_rarities?: string[] };
         Returns: {
           bucket: string;
           id: string;

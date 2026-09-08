@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { NO_FILTER, filterQuery, type FeedFilter } from "./filters";
 import { feedImage } from "./images";
 import { ensureSession } from "./supabase/client";
 import type { Card, FeedResponse } from "./types";
@@ -30,9 +31,12 @@ function preload(card: Card): void {
  * the previous filter resolves against an unmounted component and is discarded
  * by React, so it can never append cards from a feed the user left.
  */
-export function useCardQueue(rarities: string[] = []) {
-  // Sorted, so ticking A then B and B then A produce the same request.
-  const filterKey = [...rarities].sort().join(",");
+export function useCardQueue(filter: FeedFilter = NO_FILTER) {
+  // A string, not the object: `filter` is a fresh object on every render of the
+  // caller, so depending on it directly would refetch forever. filterQuery is
+  // canonical — sorted rarities, absent bounds omitted — so two filters that
+  // mean the same thing produce the same key and the same request.
+  const filterKey = filterQuery(filter).toString();
 
   const [queue, setQueue] = useState<Card[]>([]);
   const [ready, setReady] = useState(false);
@@ -48,8 +52,8 @@ export function useCardQueue(rarities: string[] = []) {
     if (inFlight.current) return;
     inFlight.current = true;
     try {
-      const query = new URLSearchParams({ n: String(QUEUE_TARGET) });
-      if (filterKey) query.set("rarities", filterKey);
+      const query = new URLSearchParams(filterKey);
+      query.set("n", String(QUEUE_TARGET));
 
       const response = await fetch(`/api/feed?${query}`);
       if (!response.ok) {

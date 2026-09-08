@@ -18,6 +18,19 @@ export async function GET(request: Request) {
     .map((value) => value.trim())
     .filter(Boolean);
 
+  // Same rule for the price bounds: an absent parameter is "no bound", which is
+  // not the same as zero and not the same as the top of the slider. A client
+  // whose upper handle is parked omits max_price entirely, so the $4,500
+  // Charizard stays reachable however far the catalog outgrows the UI ceiling.
+  const price = (name: string): number | undefined => {
+    const raw = params.get(name);
+    if (raw === null || raw.trim() === "") return undefined;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : undefined;
+  };
+  const minPrice = price("min_price");
+  const maxPrice = price("max_price");
+
   const supabase = await createServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) {
@@ -26,17 +39,21 @@ export async function GET(request: Request) {
 
   // The mix, the cold-start threshold and the taste math all live inside this
   // function so the weights have exactly one home. See db/migrations/0005.
-  // The rarity filter is applied there too, so no bucket can leak an unticked
-  // group — see db/migrations/0009.
+  // The rarity and price filters are applied there too, so no bucket can leak an
+  // unticked group or an out-of-range card — see db/migrations/0009 and 0014.
   const { data, error } = await supabase.rpc("feed_for_user", {
     p_limit: n,
     p_rarities: rarities.length > 0 ? rarities : undefined,
+    p_min_price: minPrice,
+    p_max_price: maxPrice,
   });
   if (error) {
-    // An unknown group key is a client bug, not a server fault: the function
-    // raises rather than returning an empty batch that would look like "you
-    // have seen everything".
-    const status = error.message.includes("unknown rarity group") ? 400 : 500;
+    // An unknown group key or an impossible range is a client bug, not a server
+    // fault: the function raises rather than returning an empty batch that would
+    // look like "you have seen everything".
+    const status = /unknown rarity group|price range is inverted|price must not be negative/.test(error.message)
+      ? 400
+      : 500;
     return NextResponse.json({ error: error.message }, { status });
   }
 

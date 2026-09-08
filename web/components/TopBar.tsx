@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 
+import type { FeedFilter } from "@/lib/filters";
 import type { RarityGroup } from "@/lib/types";
 import { PILL } from "@/lib/ui";
 
 import { AccountMenu } from "./AccountMenu";
-import { RarityFilter } from "./RarityFilter";
+import { FilterPanel } from "./FilterPanel";
 
 /** Everything the bar needs to know about who is looking. */
 export interface Account {
@@ -30,19 +31,19 @@ export interface Account {
  */
 export function TopBar({
   rarityGroups,
-  rarities,
-  onRaritiesChange,
+  filter,
+  onFilterChange,
   account,
 }: {
   rarityGroups: RarityGroup[];
-  rarities: string[];
-  onRaritiesChange: (next: string[]) => void;
+  filter: FeedFilter;
+  onFilterChange: (next: FeedFilter) => void;
   account: Account;
 }) {
   return (
     <header className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4">
       <div className="justify-self-start">
-        <RarityFilter groups={rarityGroups} selected={rarities} onChange={onRaritiesChange} />
+        <FilterPanel groups={rarityGroups} filter={filter} onChange={onFilterChange} />
       </div>
 
       <Link href="/" aria-label="VividDeck — home" className="justify-self-center">

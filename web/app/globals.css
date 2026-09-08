@@ -19,3 +19,56 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   overscroll-behavior: none;
 }
+
+/*
+ * Thumbs for the two-handle price slider (components/PriceRange.tsx).
+ *
+ * The range inputs are stacked on top of each other so the two handles share one
+ * track. That only works if the inputs themselves are transparent to the pointer
+ * — otherwise the upper input's full-width track swallows every grab at the
+ * lower one's handle. So the input is `pointer-events: none` and only the thumb
+ * takes them back. Clicking the bare track therefore does nothing, which is the
+ * intended trade: a track click cannot know which of the two handles you meant.
+ *
+ * Thumb pseudo-elements cannot be expressed as Tailwind utilities and cannot be
+ * grouped into one rule — a selector list containing a vendor pseudo-element the
+ * browser does not recognise invalidates the whole rule — hence plain CSS,
+ * duplicated per engine.
+ */
+.range-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  border: 2px solid #4f46e5; /* indigo-600, matching the filter pill */
+  background: #ededed;
+  cursor: grab;
+}
+
+.range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  border: 2px solid #4f46e5;
+  background: #ededed;
+  cursor: grab;
+}
+
+.range-thumb:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #a5b4fc; /* indigo-300 */
+  outline-offset: 2px;
+}
+
+.range-thumb:focus-visible::-moz-range-thumb {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { NO_FILTER, activeCount, filterQuery, type FeedFilter } from "@/lib/filters";
 import { feedImage } from "@/lib/images";
 import type { Card, RarityGroup, SwipeDirection } from "@/lib/types";
 import { join } from "@/lib/ui";
@@ -16,7 +17,7 @@ const DRAG_DISTANCE_THRESHOLD = 120;
 const DRAG_VELOCITY_THRESHOLD = 500;
 
 export function SwipeDeck({ rarityGroups, account }: { rarityGroups: RarityGroup[]; account: Account }) {
-  const [rarities, setRarities] = useState<string[]>([]);
+  const [filter, setFilter] = useState<FeedFilter>(NO_FILTER);
 
   return (
     // One viewport-height column: the bar takes what it needs and the deck gets
@@ -25,17 +26,19 @@ export function SwipeDeck({ rarityGroups, account }: { rarityGroups: RarityGroup
     <main className="flex h-dvh w-full flex-col overflow-hidden">
       {/* Outside the keyed Deck below, so changing the filter does not remount
           the panel out from under the click that changed it. */}
-      <TopBar rarityGroups={rarityGroups} rarities={rarities} onRaritiesChange={setRarities} account={account} />
+      <TopBar rarityGroups={rarityGroups} filter={filter} onFilterChange={setFilter} account={account} />
       {/* The key is the reset. A filter change mounts a new Deck with a fresh
           queue and one new fetch, instead of tearing down state by hand and
-          having to remember to extend that teardown every time state is added. */}
-      <Deck key={rarities.length > 0 ? [...rarities].sort().join(",") : "all"} rarities={rarities} />
+          having to remember to extend that teardown every time state is added.
+          filterQuery is canonical, so re-ticking a box you just unticked lands
+          back on the same key and keeps the deck you already had. */}
+      <Deck key={filterQuery(filter).toString() || "all"} filter={filter} />
     </main>
   );
 }
 
-function Deck({ rarities }: { rarities: string[] }) {
-  const { queue, ready, exhausted, error, advance } = useCardQueue(rarities);
+function Deck({ filter }: { filter: FeedFilter }) {
+  const { queue, ready, exhausted, error, advance } = useCardQueue(filter);
   const current = queue[0];
 
   const swipe = useCallback(
@@ -80,8 +83,8 @@ function Deck({ rarities }: { rarities: string[] }) {
           : !ready
             ? "Loading…"
             : exhausted
-              ? rarities.length > 0
-                ? "No unswiped cards left in those rarities. Widen the filter to keep going."
+              ? activeCount(filter) > 0
+                ? "No unswiped cards left in that filter. Widen it to keep going."
                 : "You have seen everything. Come back after the next set drops."
               : "Loading…"}
       </Message>
