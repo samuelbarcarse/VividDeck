@@ -9,6 +9,53 @@ export type Database = {
   };
   public: {
     Tables: {
+      card_prices: {
+        Row: {
+          card_id: string;
+          direct_low_price: number | null;
+          high_price: number | null;
+          low_price: number | null;
+          market_price: number | null;
+          mid_price: number | null;
+          product_id: number | null;
+          synced_at: string;
+          updated: string | null;
+          variant: string;
+        };
+        Insert: {
+          card_id: string;
+          direct_low_price?: number | null;
+          high_price?: number | null;
+          low_price?: number | null;
+          market_price?: number | null;
+          mid_price?: number | null;
+          product_id?: number | null;
+          synced_at?: string;
+          updated?: string | null;
+          variant: string;
+        };
+        Update: {
+          card_id?: string;
+          direct_low_price?: number | null;
+          high_price?: number | null;
+          low_price?: number | null;
+          market_price?: number | null;
+          mid_price?: number | null;
+          product_id?: number | null;
+          synced_at?: string;
+          updated?: string | null;
+          variant?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "card_prices_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       cards: {
         Row: {
           created_at: string | null;
@@ -23,6 +70,7 @@ export type Database = {
           rarity: string | null;
           rarity_group: string | null;
           set_id: string | null;
+          tcgplayer_product_id: number | null;
         };
         Insert: {
           created_at?: string | null;
@@ -37,6 +85,7 @@ export type Database = {
           rarity?: string | null;
           rarity_group?: string | null;
           set_id?: string | null;
+          tcgplayer_product_id?: number | null;
         };
         Update: {
           created_at?: string | null;
@@ -51,6 +100,7 @@ export type Database = {
           rarity?: string | null;
           rarity_group?: string | null;
           set_id?: string | null;
+          tcgplayer_product_id?: number | null;
         };
         Relationships: [
           {
@@ -167,6 +217,17 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      card_prices_for: {
+        Args: { p_card_id: string };
+        Returns: {
+          high_price: number;
+          low_price: number;
+          market_price: number;
+          product_id: number;
+          updated: string;
+          variant: string;
+        }[];
+      };
       feed_for_user: {
         Args: { p_limit?: number; p_rarities?: string[] };
         Returns: {
@@ -178,6 +239,7 @@ export type Database = {
           price_usd: number;
           rarity: string;
           set_name: string;
+          tcgplayer_product_id: number;
         }[];
       };
       list_likes: {
@@ -191,6 +253,7 @@ export type Database = {
           price_usd: number;
           rarity: string;
           set_name: string;
+          tcgplayer_product_id: number;
         }[];
       };
       purge_stale_anonymous_users: {

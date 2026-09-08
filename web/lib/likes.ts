@@ -46,6 +46,7 @@ interface LikeRow {
   rarity: string | null;
   price_usd: number | null;
   set_name: string | null;
+  tcgplayer_product_id: number | null;
 }
 
 /**
@@ -63,6 +64,7 @@ export function toLikesPage(rows: LikeRow[], pageSize: number): LikesPage {
     rarity: row.rarity ?? null,
     price_usd: row.price_usd ?? null,
     set_name: row.set_name ?? null,
+    tcgplayer_product_id: row.tcgplayer_product_id ?? null,
   }));
 
   // A short page means the list is exhausted. A full page might still be the

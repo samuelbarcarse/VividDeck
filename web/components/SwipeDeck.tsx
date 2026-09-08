@@ -8,6 +8,7 @@ import { feedImage } from "@/lib/images";
 import type { Card, RarityGroup, SwipeDirection } from "@/lib/types";
 import { useCardQueue } from "@/lib/useCardQueue";
 
+import { CardPrice } from "./CardPrice";
 import { RarityFilter } from "./RarityFilter";
 
 const DRAG_DISTANCE_THRESHOLD = 120;
@@ -120,6 +121,9 @@ function Deck({ rarities }: { rarities: string[] }) {
 function CardMeta({ card }: { card: Card }) {
   return (
     <div className="w-full max-w-md text-center text-sm text-neutral-400">
+      {/* Above the name, directly under the art. It used to sit last, below the
+          illustrator, where it read as a footnote. */}
+      <CardPrice card={card} className="mb-1" />
       <p className="text-base text-neutral-100">{card.name}</p>
       <p>
         {card.set_name}
@@ -132,7 +136,6 @@ function CardMeta({ card }: { card: Card }) {
           </Link>
         </p>
       )}
-      {card.price_usd !== null && <p className="text-xs text-neutral-600">${card.price_usd}</p>}
     </div>
   );
 }

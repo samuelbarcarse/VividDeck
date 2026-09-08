@@ -13,7 +13,7 @@ export default async function ArtistPage({ params }: PageProps<"/artist/[name]">
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("cards")
-    .select("id, name, image_key, illustrator, rarity, price_usd, sets(name)")
+    .select("id, name, image_key, illustrator, rarity, price_usd, tcgplayer_product_id, sets(name)")
     .eq("illustrator", illustrator)
     // Without an explicit order, Postgres is free to return any PAGE_SIZE rows it
     // likes, and to return a different set on the next request. For a prolific
@@ -35,6 +35,7 @@ export default async function ArtistPage({ params }: PageProps<"/artist/[name]">
     illustrator: card.illustrator,
     rarity: card.rarity,
     price_usd: card.price_usd,
+    tcgplayer_product_id: card.tcgplayer_product_id,
     set_name: card.sets?.name ?? null,
   }));
 

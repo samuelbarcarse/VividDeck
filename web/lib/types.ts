@@ -7,7 +7,14 @@ export interface Card {
   illustrator: string | null;
   rarity: string | null;
   set_name: string | null;
+  /**
+   * TCGplayer market price of the cheapest variant, in USD. Null when there is
+   * no listing — common for promos and very new sets. Not condition-specific;
+   * see lib/price.ts.
+   */
   price_usd: number | null;
+  /** TCGplayer product page id, for linking the price out. Null when unpriced. */
+  tcgplayer_product_id: number | null;
   /** Which bucket served this card — useful while tuning the mix. */
   bucket?: "similar" | "random" | "recent";
 }

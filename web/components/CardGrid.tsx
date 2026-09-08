@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CardPrice } from "@/components/CardPrice";
 import { feedImage } from "@/lib/images";
 import type { Card } from "@/lib/types";
 
@@ -15,6 +16,10 @@ export function CardGrid({ cards }: { cards: Card[] }) {
             loading="lazy"
             className="w-full rounded-xl shadow-lg shadow-black/40"
           />
+          {/* Between the art and the name, so the eye reads image → price →
+              what it is. Absent entirely when unpriced, which is why the name
+              below it is not positioned relative to it. */}
+          <CardPrice card={card} />
           <p className="truncate text-xs text-neutral-300">{card.name}</p>
           {card.illustrator && (
             <Link
