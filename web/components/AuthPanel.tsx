@@ -53,7 +53,7 @@ export function AuthPanel({
       if (!linkError) return;
 
       // The common non-fatal case: this Google account is already attached to
-      // another VividDeck user, which happens whenever someone signs in from a
+      // another SiftTCG user, which happens whenever someone signs in from a
       // second device that had started its own anonymous session. Signing in
       // normally is the right recovery — it returns them to their real account.
       // The throwaway anonymous row they are leaving behind gets reaped by the

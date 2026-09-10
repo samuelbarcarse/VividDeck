@@ -24,13 +24,26 @@ export function TopBar({ left, right }: { left?: React.ReactNode; right?: React.
     <header className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4">
       <div className="flex items-center gap-2 justify-self-start sm:gap-3">{left}</div>
 
-      <Link href="/" aria-label="VividDeck — home" className="justify-self-center">
+      <Link
+        href="/"
+        aria-label="SiftTCG — home"
+        className="flex items-center gap-1.5 justify-self-center sm:gap-2"
+      >
         {/* A local PNG with its own alpha, not next/image: there is nothing to
             optimise and the loader would only add a request to the critical path.
-            The asset is a dark-mode lockup — the source artwork is navy on white
-            and would show as a white slab on this background. */}
+            The asset is dark-mode ink — the source artwork is navy on white and
+            would show as a white slab on this background.
+
+            Icon only, with the name set in text beside it. The delivered lockup
+            has its wordmark drawn as pixels, so a rename would otherwise mean
+            commissioning art; this way the name lives in one string. `alt` is
+            empty because the link is already labelled above — announcing the
+            mark again would just make a screen reader say the name twice. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/vividdeck-logo.png" alt="VividDeck" className="h-5 w-auto sm:h-7" />
+        <img src="/sifttcg-icon.png" alt="" className="h-5 w-auto sm:h-7" />
+        <span className="text-base font-semibold tracking-tight text-foreground sm:text-xl">
+          SiftTCG
+        </span>
       </Link>
 
       <div className="flex items-center gap-2 justify-self-end sm:gap-3">{right}</div>

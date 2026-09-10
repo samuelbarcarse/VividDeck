@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VividDeck",
+  title: "SiftTCG",
   description: "Swipe through and discover new Pokemon card art",
 };
 
