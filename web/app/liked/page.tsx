@@ -60,9 +60,7 @@ export default async function LikedPage({ searchParams }: PageProps<"/liked">) {
           which spends the one moment this prompt gets to land. */}
       {account.anonymousSession && cards.length >= SAVE_PROMPT_MIN_LIKES && (
         <div className="mb-6 rounded-xl border border-amber-900/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-200/90">
-          These aren&rsquo;t saved. You&rsquo;re browsing without an account, so this list lives only in this browser and
-          is deleted after a week of inactivity. Sign in to keep it — your {cards.length} likes and everything the feed
-          has learned carry over.
+          You&rsquo;re browsing without an account. These aren&rsquo;t saved. Sign in to keep the {cards.length} cards in your watchlist.
         </div>
       )}
       <Watchlist initial={cards} />
