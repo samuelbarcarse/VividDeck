@@ -116,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     failures = failure_logger(paths, "download_images")
     limiter = RateLimiter(args.rate)
     session = requests.Session()
-    session.headers["User-Agent"] = "riffle-ingest/0.1"
+    session.headers["User-Agent"] = "sifttcg-ingest/0.1"
 
     downloaded = 0
     failed = 0

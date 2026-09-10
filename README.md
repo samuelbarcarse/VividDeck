@@ -1,168 +1,114 @@
-# VividDeck
+# SiftTCG
 
-Swipe-based Pokémon card art discovery
+Swipe-based Pokémon card **art** discovery. Live at **[sifttcg.com](https://sifttcg.com)**.
+
+Swipe right to keep, left to skip, and the feed learns what you actually like looking at.
+
+## Why
+
+There are thousands and thousands of cards in Pokemon TCG. As a collector who appreciates the art, I often have trouble finding new cards amongst the large catalog Pokemon has to offer. Some cards don't get exposure, which makes it difficult to know they exist. 
+
+Many of my reccomendations come from social media, like TikTok. I'll see these and oftentime forget about it the next day.
+
+I wanted to build a platform solely for card art discovery and saving the cards that I would like to add to my collection.
+
+## How the feed works
+
+Every card image is embedded with CLIP into a 512-dimension unit vector. Your
+taste is the normalised mean of the cards you liked, minus a fraction of the ones
+you skipped:
 
 ```
-db/         SQL migrations (mirror of what is applied to Supabase)
-ingest/     Python pipeline: catalog -> manifest -> images -> R2 -> embeddings -> DB
-web/        Next.js 16 app (App Router, Tailwind v4, Framer Motion)
+taste = normalize( mean(liked) − 0.3 × mean(disliked) )
 ```
 
-## Status
+Both sides are kept as running sums, so recording a swipe is O(1) rather than a
+re-scan of your history. Each batch is then mixed from three buckets:
 
-Ingest stages (`ingest/pipeline/`):
-
-| Stage | What | State |
+| Bucket | Share | What it is |
 |---|---|---|
-| 1 | `fetch_catalog.py` | done, verified on 5 EN sets + 1 JA set |
-| 2 | `build_manifest.py` | done, verified (815 cards, 132 illustrators) |
-| 3 | `download_images.py` | done, 815/815 downloaded, 0 failures |
-| 4 | `process_images.py` | done, 815 cards x 2 renditions |
-| 5 | `upload_r2.py` | done, 1630 objects / 113.7 MB, 0 failed |
-| 6 | `embed.py` | done, 815x512 embeddings, spot checks pass |
-| 7 | `load_db.py` | done, 6 sets + 815 cards, all embeddings unit-norm |
-| 8 | `sync_prices.py` | stub — see note below |
+| similar | 70% | nearest neighbours to your taste vector |
+| recent | 10% | newer sets, so the feed is not all 1999 |
+| random | 20% | unfiltered exploration |
 
-Every stage has now run end to end on the 5-set sample. Re-running any of them is
-a no-op.
+The random 20% is the product, not a tuning knob. Pure nearest-neighbour serving
+collapses into a loop of near-identical cards within a few dozen swipes, and the
+only thing that reliably breaks it is showing you something you would not have
+been shown. Below 10 swipes there is no taste vector at all and the feed is
+random by definition — a cold start you can see rather than one that pretends.
 
-Build order per SPEC.md:
+There is also a small penalty on cards above the 90th price percentile, so the
+feed does not quietly become a list of chase cards.
 
-| Step | What | State |
-|---|---|---|
-| 1 | DB migrations and schema | done, 6 migrations applied |
-| 2–3 | Ingest stages 1–7 on 5 sets | done, data live in Supabase and R2 |
-| 4 | **Neighbor-quality checkpoint** | `neighbors.py` written, contact sheet generated — **awaiting your review** |
-| 5 | Full catalog ingest | not started, gated on step 4 |
-| 6–7 | Feed endpoint, swipe UI with prefetch | done |
-| 8 | Taste vector + three-bucket serving | done, verified end to end against a synthetic fixture |
-| 9–12 | Liked view, artist view, auth, price sync | scaffolded only |
+The weights live in exactly one place, `db/migrations/0005_taste_feed.sql`, and
+are commented where they are declared. They are judgment calls, not derivations.
 
-## Before anything works
+## Features
 
-**Anonymous sign-ins must be enabled** in the Supabase dashboard under
-Authentication → Sign In / Providers. They are currently off, and `signInAnonymously()`
-returns `anonymous_provider_disabled`. Every visitor gets an anonymous session on first
-load, so the app is non-functional until this is toggled.
+**Swipe deck** — one card at a time, drag or arrow keys, with a 20-card prefetch
+queue so the next image is already decoded. Opens on Illustration Rares, the
+tier that exists because of the art.
 
-You also need R2 details filled into `web/.env.local` and `ingest/.env` — the example
-files carry placeholders for the bucket name, account id, and public custom domain.
+**Filters** — by rarity group and by price, the latter on a logarithmic slider
+because the interesting range is $0–$50 and the tail runs to $4,500.
 
-## Supabase
+**Watchlist** — everything you kept, split into *In progress* and *Completed* so
+a want-list and a done-list live in one view. Sort by price, name, artist or
+date; search across all of them; select many and act on them at once. Full-card
+view with a blurred backdrop, and a link out to TCGplayer for anything you
+actually want to buy.
 
-Project `dqbtclsbdcglgurchxrb`. Migrations in `db/migrations/` are already applied;
-they exist so the schema is reviewable and reproducible, not as a migration runner.
+**Artist view** — every card by one illustrator. 386 of them in the catalog.
 
-Regenerate types after any schema change:
+**Accounts are optional** — you get an anonymous session on first load and can
+swipe immediately, no signup wall. Sign in with Google later and the same user id
+is kept, so your swipes and your accumulated taste carry across rather than being
+abandoned. Anonymous sessions are deleted after a week of inactivity.
 
-```bash
-npx supabase gen types typescript --project-id dqbtclsbdcglgurchxrb > web/lib/database.types.ts
-```
+## Catalog
 
-## Ingest
+| | |
+|---|---|
+| Cards | 19,508 |
+| With embeddings | 19,502 |
+| Sets | 149 |
+| Illustrators | 386 |
+| Price rows | 31,413 |
 
-```bash
-cd ingest
-python -m venv .venv && .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
+English only displayed in app. Japanese integration in the future.
 
-python -m pipeline.fetch_catalog --languages en --limit-sets 5
-python -m pipeline.build_manifest
-python -m pipeline.download_images
-python -m pipeline.process_images
-python -m pipeline.embed
-```
+## Tech stack
 
-Every stage writes atomically and skips completed work, so re-running is a no-op.
-`run_all.py` chains stages 1–7 with `--from`/`--to`.
+**Web**
 
-### Reviewing recommendation quality
+| | |
+|---|---|
+| Framework | Next.js 16.3 (App Router, Turbopack) |
+| UI | React 19.2, Tailwind CSS v4, Framer Motion 13 |
+| Auth & data | Supabase (`@supabase/ssr`, `supabase-js`) |
+| Hosting | Vercel |
 
-Build order step 4 is a hard gate: if the nearest neighbors don't look like cards
-you'd want to see next, the concept fails and no UI work fixes it.
+**Data**
 
-```bash
-python neighbors.py --card en-base1-4 --random 6 --open
-```
+| | |
+|---|---|
+| Database | Postgres 17 on Supabase |
+| Vector search | pgvector 0.8, 512-dim, cosine |
+| Scheduled jobs | pg_cron |
+| Image storage | Cloudflare R2 behind a custom domain |
+| CAPTCHA | Cloudflare Turnstile |
 
-Writes `data/neighbors.html`, a contact sheet of each query card beside its ten
-nearest neighbors, reading images from local disk so it works before any upload.
+**Ingest**
 
-## Web
+| | |
+|---|---|
+| Language | Python 3.11+ |
+| Embeddings | OpenCLIP `ViT-B-32` / `laion2b_s34b_b79k` |
+| Imaging | Pillow — WebP at q65 (feed) and q90 (detail) |
+| Storage & DB | boto3, psycopg 3 |
+| Source | [TCGdex](https://tcgdex.dev) for catalog, art and TCGplayer pricing |
 
-```bash
-cd web
-npm install
-cp .env.local.example .env.local
-npm run dev
-```
+---
 
-## What the API actually looks like
-
-Measured against the live TCGdex API, because the spec's assumptions do not all hold:
-
-- **Illustrator and rarity are not in the per-set response.** Getting them naively means
-  one REST call per card — roughly 40k calls, ~2.2 hours.
-- **The GraphQL root `cards` query with an id-prefix filter returns hydrated cards** at
-  ~0.7s per set, which collapses English ingest from hours to minutes. It is English-only
-  (there is no `/v2/ja/graphql`), so Japanese still costs one REST call per card. Note
-  the id filter is a substring match, so results must be re-filtered client-side.
-- **Image coverage is much worse than the card counts suggest:**
-
-  | Language | With images | Total | |
-  |---|---|---|---|
-  | English | 21,829 | 23,548 | 92.7% |
-  | Japanese | 3,882 | 12,781 | 30.4% |
-
-  Every Japanese set from 1996 through 2021 has zero images. The realistic corpus is
-  ~25,700 cards, not ~40k — worth weighing before spending an hour on Japanese ingest.
-- **Card ids are not globally unique.** `neo1`–`neo4` exist in both catalogs, so `neo1-1`
-  is ambiguous. Every id is namespaced as `{lang}-{tcgdex_id}` (`en-base1-4`,
-  `ja-PMCG1-001`) with the original kept in `tcgdex_id`.
-- **Stage 8 may be unnecessary.** TCGdex's per-card REST response now carries
-  `pricing.tcgplayer.*.marketPrice` in USD, which avoids pokemontcg.io and its
-  set-code + number join problem entirely.
-- **There is no 1200px source.** `high` is the largest asset TCGdex serves, and it
-  is exactly 600x825 for every one of the 815 cards checked; `max`, `full`, `xhigh`
-  and `2x` all 404, and `original` returns a 295-byte placeholder. The spec's
-  1200px detail rendition would have been a byte-identical copy of feed, doubling
-  R2 storage for nothing. Both renditions are now native width and differ by
-  quality instead — feed at q65 (~51KB, sized for the 20-image prefetch queue),
-  detail at q90.
-- **The ~40KB feed target isn't reachable at 600px** without visible banding on
-  foil art; it assumed downscaling from something larger. q65 lands at 51KB.
-
-### Neighbor quality, first read
-
-On 815 cards the clusters are semantically real — Mantyke pulls Wynaut, Mime Jr.,
-Azurill, Munchlax, Bonsly and Cleffa; Mareep pulls Pikachu, Flaaffy and Lanturn.
-One caveat to watch once the full catalog is in: Base Set queries return mostly
-Base Set neighbors, so CLIP is keying on card frame and era as much as on the art.
-That is another argument for not shrinking the 20% random bucket.
-
-A live probe against `feed_for_user` puts a number on that caveat. Liking 12
-Mitsuhiro Arita cards and reading back one batch:
-
-| Signal | In the similar bucket | Catalog base rate | Lift |
-|---|---|---|---|
-| Illustrated by Arita | 3/14 (21%) | 4.2% | ~5x |
-| From Base Set | 9/14 (64%) | ~13% | ~5x |
-
-Artist and era lift by the same factor, so this batch cannot tell them apart —
-consistent with the frame/era confound rather than ruling it out. Arita's cards
-are concentrated in Base Set, which is exactly what makes the two hypotheses hard
-to separate. Worth re-running against an illustrator whose work spans several eras
-before concluding the embeddings capture style.
-
-## Conventions
-
-- Card images are served straight from R2 as plain `<img>` tags. **Never `next/image`** —
-  it would proxy every request through the Next server and defeat the CDN.
-- Vector math stays server-side. The client never sees an embedding.
-- Recommendation math lives only in `db/migrations/0005_taste_feed.sql`. The weights
-  are judgment calls, not derivations, and are commented where they are declared.
-  Deliberately not mirrored in TypeScript — two copies of a tuning constant drift.
-- pgvector is installed into the `extensions` schema, so any function touching a
-  vector needs `set search_path = extensions` (operator resolution goes through
-  search_path). Keep every table reference `public.`-qualified.
+Card images and Pokémon are property of their respective owners. This is a
+non-commercial project for browsing card art.

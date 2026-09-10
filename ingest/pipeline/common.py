@@ -123,7 +123,10 @@ class TCGdexClient:
         self.limiter = RateLimiter(rate_per_sec)
         self.max_retries = max_retries
         self.session = requests.Session()
-        self.session.headers["User-Agent"] = "riffle-ingest/0.1 (+https://github.com/samuelbarcarse/VividDeck)"
+        # The URL tracks wherever the repository actually lives, which is not the
+        # same thing as the product name — update it if and when the repo is
+        # renamed, not when the app is.
+        self.session.headers["User-Agent"] = "sifttcg-ingest/0.1 (+https://github.com/samuelbarcarse/VividDeck)"
 
     def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         last_error: Exception | None = None

@@ -124,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
 
     out = args.out or (paths.root / "neighbors.html")
     out.write_text(
-        f"<!doctype html><meta charset=utf-8><title>Riffle — nearest neighbors</title>"
+        f"<!doctype html><meta charset=utf-8><title>SiftTCG — nearest neighbors</title>"
         f"<style>{PAGE_CSS}</style>\n" + "\n".join(sections),
         encoding="utf-8",
     )
