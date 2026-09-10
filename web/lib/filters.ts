@@ -16,6 +16,34 @@ export interface FeedFilter {
 
 export const NO_FILTER: FeedFilter = { rarities: [], minStep: 0, maxStep: PRICE_STEPS };
 
+/**
+ * What the deck opens on for a new visitor.
+ *
+ * Not the same thing as NO_FILTER, and deliberately so. The catalog is 55%
+ * Common and Uncommon, which are the rarities printed without bespoke art — a
+ * cold deck drawn from everything spends most of its first impression on cards
+ * whose illustration is a stock pose. Illustration Rares are the tier that
+ * exists *because* of the art, so opening there shows the product at its best
+ * before the taste vector has anything to work with.
+ *
+ * Both illustration tiers, since Special Illustration Rare is a grade of the
+ * same thing rather than a different kind of card. Together they are 715
+ * swipeable cards against 493 for the base tier alone — still a small pool, so
+ * a determined user will reach the end of it. That is what the Filter control is
+ * for, and the pill reads "1" from first load precisely so the narrowing is
+ * visible rather than mysterious.
+ *
+ * The keys are the primary keys of public.rarity_groups (db/migrations/0008).
+ * feed_for_user raises on an unknown group and the route turns that into a 400,
+ * so a key that stopped existing would fail loudly on first load rather than
+ * quietly serving an unfiltered deck.
+ */
+export const DEFAULT_FILTER: FeedFilter = {
+  rarities: ["illustration_rare", "special_illustration_rare"],
+  minStep: 0,
+  maxStep: PRICE_STEPS,
+};
+
 /** Has the user actually constrained price, or are both handles parked? */
 export function hasPriceFilter(filter: FeedFilter): boolean {
   return filter.minStep > 0 || filter.maxStep < PRICE_STEPS;

@@ -114,8 +114,8 @@ export function PriceRange({
           without saying so. */}
       <p className="text-[11px] leading-snug text-neutral-600">
         {draft.min > 0 || draft.max < PRICE_STEPS
-          ? "Cards with no market price are hidden while a range is set."
-          : "Drag either end. The scale is logarithmic, so most of the catalog sits in the lower half."}
+          ? "Cards with no market price are hidden while a range is set"
+          : "Drag either end to adjust the price range"}
       </p>
     </div>
   );

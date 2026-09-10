@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { NO_FILTER, activeCount, filterQuery, type FeedFilter } from "@/lib/filters";
+import { DEFAULT_FILTER, activeCount, filterQuery, type FeedFilter } from "@/lib/filters";
 import { feedImage } from "@/lib/images";
 import type { Account, Card, RarityGroup, SwipeDirection } from "@/lib/types";
 import { PILL, join } from "@/lib/ui";
@@ -19,7 +19,10 @@ const DRAG_DISTANCE_THRESHOLD = 120;
 const DRAG_VELOCITY_THRESHOLD = 500;
 
 export function SwipeDeck({ rarityGroups, account }: { rarityGroups: RarityGroup[]; account: Account }) {
-  const [filter, setFilter] = useState<FeedFilter>(NO_FILTER);
+  // Opens on Illustration Rares rather than the whole catalog — see
+  // DEFAULT_FILTER. "Reset all" in the panel still clears to nothing, because
+  // that is what reset means; this is a starting point, not a floor.
+  const [filter, setFilter] = useState<FeedFilter>(DEFAULT_FILTER);
 
   return (
     // One viewport-height column: the bar takes what it needs and the deck gets
